@@ -1,0 +1,22 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h3>Edit goals</h3>
+  <form method="post" action="/edit">
+    <p><strong>Daily</strong></p>
+    <textarea name="daily" rows="8">{{ daily_text }}</textarea>
+    <p><strong>Monthly</strong></p>
+    <textarea name="monthly" rows="8">{{ monthly_text }}</textarea>
+    <p><strong>Yearly</strong></p>
+    <textarea name="yearly" rows="8">{{ yearly_text }}</textarea>
+
+    <p class="muted">Auto-resets stored in <code>_settings.json</code>:</p>
+    <label><input type="checkbox" name="reset_daily" {% if settings.reset_daily %}checked{% endif %}> Reset daily at new day</label><br/>
+    <label><input type="checkbox" name="reset_monthly" {% if settings.reset_monthly %}checked{% endif %}> Reset monthly at new month</label><br/>
+    <label><input type="checkbox" name="reset_yearly" {% if settings.reset_yearly %}checked{% endif %}> Reset yearly at new year</label><br/><br/>
+
+    <button class="btn primary" type="submit">Save</button>
+  </form>
+</div>
+<p><a class="btn" href="/">← Back</a></p>
+{% endblock %}

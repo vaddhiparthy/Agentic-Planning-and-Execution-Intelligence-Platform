@@ -1,0 +1,34 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="muted">{{ goal.scope|capitalize }} • {{ goal.id }} • Iter {{ goal.iteration_count }} • Last run {{ goal.last_runtime|fmt_ts }}</div>
+  <h2>{{ goal.summary }}</h2>
+  <p><em>{{ goal.original }}</em></p>
+
+  <h3>Path to completion</h3>
+  <ol>{% for s in goal.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+
+  <h3>Progress (your notes)</h3>
+  <form method="post" action="/goal/{{ goal.id }}/save">
+    <textarea name="progress" rows="6" placeholder="What did you try? What happened?">{{ goal.progress | e }}</textarea>
+    <p><label><input type="checkbox" name="done" {% if goal.done %}checked{% endif %}/> Mark as done</label></p>
+    <button class="btn primary" type="submit">Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Change log</h3>
+  <ul>
+    {% for c in goal.changelog %}
+      <li class="mono">{{ c.ts|fmt_ts }} — {{ c.note }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<p><a class="btn" href="/">← Back</a></p>
+{% endblock %}
+
+
+
+
+

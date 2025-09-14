@@ -1,0 +1,27 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ title or "ASTRA-X Overthinker" }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;line-height:1.35}
+    a{color:#0366d6;text-decoration:none} a:hover{text-decoration:underline}
+    .card{border:1px solid #ddd;border-radius:10px;padding:16px;margin:12px 0}
+    .btn{display:inline-block;padding:8px 12px;border:1px solid #333;border-radius:8px}
+    .btn.primary{background:#111;color:#fff;border-color:#111}
+    .muted{color:#666}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    input[type="text"],textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px}
+    nav{margin-bottom:12px}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="btn">Home</a>
+    <a href="/edit" class="btn">Edit</a>
+  </nav>
+  <h1>{{ title or "ASTRA-X Overthinker" }}</h1>
+  {% block content %}{% endblock %}
+</body>
+</html>

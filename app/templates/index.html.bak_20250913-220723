@@ -1,0 +1,49 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="meta">Today: {{ today }}</div>
+  <div style="margin-top:8px">
+    <a class="btn" href="/status">Status</a>
+    <a class="btn" href="/edit">Edit master pages</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Daily</h3>
+  <ul>
+  {% for g in daily %}<li><a href="/goal/{{ g.id }}">{{ g.title }}</a> <span class="muted">({{ g.id }})</span></li>{% endfor %}
+  {% if daily|length == 0 %}<li class="muted">None</li>{% endif %}
+  </ul>
+  <form method="post" action="/quickadd/daily">
+    <p><strong>New daily goals (one per line, free text — IDs auto-assigned):</strong></p>
+    <textarea name="lines" rows="4" placeholder="cook new high-protein dinner&#10;inbox to zero by 6pm"></textarea>
+    <button class="btn primary" type="submit">Add Daily</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Monthly</h3>
+  <ul>
+  {% for g in monthly %}<li><a href="/goal/{{ g.id }}">{{ g.title }}</a> <span class="muted">({{ g.id }})</span></li>{% endfor %}
+  {% if monthly|length == 0 %}<li class="muted">None</li>{% endif %}
+  </ul>
+  <form method="post" action="/quickadd/monthly">
+    <p><strong>New monthly goals (one per line):</strong></p>
+    <textarea name="lines" rows="3" placeholder="test full restore from backup"></textarea>
+    <button class="btn primary" type="submit">Add Monthly</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Yearly</h3>
+  <ul>
+  {% for g in yearly %}<li><a href="/goal/{{ g.id }}">{{ g.title }}</a> <span class="muted">({{ g.id }})</span></li>{% endfor %}
+  {% if yearly|length == 0 %}<li class="muted">None</li>{% endif %}
+  </ul>
+  <form method="post" action="/quickadd/yearly">
+    <p><strong>New yearly goals (one per line):</strong></p>
+    <textarea name="lines" rows="3" placeholder="build nutrition playbook that fits labs & routines"></textarea>
+    <button class="btn primary" type="submit">Add Yearly</button>
+  </form>
+</div>
+{% endblock %}

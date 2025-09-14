@@ -1,0 +1,424 @@
+﻿# app.py (QuickAdd + sensible refinement, fixed ordering)
+import os, re, json, shutil, datetime as dt, time
+from flask import Flask, render_template, request, redirect
+from apscheduler.schedulers.background import BackgroundScheduler
+import yaml, requests, time
+from zoneinfo import ZoneInfo
+
+# ---------- Config ----------
+with open("config.yaml","r", encoding="utf-8") as f:
+    CFG = yaml.safe_load(f)
+
+ROOT = CFG["vault_root"].replace("\\","/")
+DAILY = os.path.join(ROOT, CFG["daily_file"])
+MONTHLY = os.path.join(ROOT, CFG["monthly_file"])
+YEARLY = os.path.join(ROOT, CFG["yearly_file"])
+ITEMS = os.path.join(ROOT, CFG["items_dir"])
+RUNS  = os.path.join(ROOT, CFG["runs_dir"])
+DONE  = os.path.join(ROOT, CFG["done_dir"])
+PERSONA = os.path.join(ROOT, "persona.md")
+
+for p in (ITEMS,RUNS,DONE): os.makedirs(p, exist_ok=True)
+
+LLM_MODE = CFG.get("llm_mode","none")
+OLLAMA = CFG.get("ollama", {})
+OPENAI = CFG.get("openai", {})
+
+app = Flask(__name__)
+SCHEDULER = None   # must exist before any route references it
+
+# ---------- Helpers ----------
+GOAL_LINE = re.compile(r"^- \[(?: |x)\]\s+([DMY]-\d{3})\s+(.*)$", re.I)
+ET = ZoneInfo("America/Detroit")
+
+def iso_now():
+    return dt.datetime.now(ET).isoformat(timespec="seconds")
+
+def fmt_ts(s):
+    try:
+        t = dt.datetime.fromisoformat(s)
+        if not t.tzinfo: t = t.replace(tzinfo=ET)
+        t = t.astimezone(ET)
+        return t.strftime("%-m/%-d/%Y %-I:%M %p")
+    except Exception:
+        return s or "—"
+
+@app.template_filter("fmt_ts")
+def jinja_fmt_ts(s): return fmt_ts(s)
+
+def read_text(p): 
+    return open(p,"r",encoding="utf-8").read() if os.path.exists(p) else ""
+
+def write_text(p,s):
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p,"w",encoding="utf-8") as f: f.write(s)
+
+def parse_master(path, scope, hide_done=True):
+    out=[]
+    for line in read_text(path).splitlines():
+        m = GOAL_LINE.match(line.strip())
+        if not m: continue
+        gid, title = m.group(1).upper(), m.group(2).strip()
+        done = "[x]" in line[:6].lower()
+        if hide_done and done: 
+            continue
+        out.append({"id":gid,"title":title,"scope":scope,"done":done})
+    return out
+
+def goal_file(gid): return os.path.join(ITEMS, f"{gid}.md")
+
+def ensure_item(g, initial_progress=None):
+    p = goal_file(g["id"])
+    if os.path.exists(p): return
+    now = iso_now()
+    template = f"""# {g['id']} — {g['title']}
+- scope: {g['scope']}
+- iteration_count: 0
+- last_runtime:
+- summary: {g['title']}
+
+## Original Goal
+{g['title']}
+
+## Path to completion
+1. Draft plan
+
+## Change Log
+- {now} — Initialized
+
+## Progress (your notes)
+{(initial_progress or "").strip()}
+"""
+    write_text(p, template)
+
+def load_item(gid):
+    t = read_text(goal_file(gid))
+    def meta(tag):
+        m = re.search(rf"^- {tag}:\s*(.*)$", t, re.M); 
+        return m.group(1).strip() if m else ""
+    def sec(name):
+        m = re.search(rf"## {name}\s*(.+?)(\n## |\Z)", t, re.S)
+        return (m.group(1).strip() if m else "")
+    steps=[re.sub(r"^\d+\.\s*","",s).strip("-• ").strip() for s in (sec("Path to completion").splitlines() if sec("Path to completion") else []) if s.strip()]
+    if not steps: steps=["Draft plan"]
+    clog=[]
+    mcl=re.search(r"## Change Log\s*(.+?)\n## Progress", t, re.S)
+    if mcl:
+        for line in mcl.group(1).strip().splitlines():
+            line=line.strip().lstrip("- ").strip()
+            parts=line.split(" — ",1)
+            if len(parts)==2: clog.append({"ts":parts[0].strip(),"note":parts[1].strip()})
+    original = sec("Original Goal")
+    return {
+        "scope": meta("scope") or "daily",
+        "id": gid,
+        "summary": meta("summary") or original or gid,
+        "original": original or meta("summary"),
+        "steps": steps,
+        "progress": sec("Progress (your notes)"),
+        "iteration_count": int(meta("iteration_count") or "0"),
+        "last_runtime": meta("last_runtime"),
+        "changelog": clog
+    }
+
+def save_item(gid, item):
+    lines=[]
+    lines.append(f"# {gid} — {item['summary']}")
+    lines.append(f"- scope: {item['scope']}")
+    lines.append(f"- iteration_count: {item['iteration_count']}")
+    lines.append(f"- last_runtime: {item['last_runtime']}")
+    lines.append(f"- summary: {item['summary']}")
+    lines.append("")
+    lines.append("## Original Goal")
+    lines.append(item["original"])
+    lines.append("")
+    lines.append("## Path to completion")
+    for i,s in enumerate(item["steps"],1): lines.append(f"{i}. {s}")
+    lines.append("")
+    lines.append("## Change Log")
+    for c in item["changelog"]: lines.append(f"- {c['ts']} — {c['note']}")
+    lines.append("")
+    lines.append("## Progress (your notes)")
+    lines.append((item["progress"] or "").rstrip()+"\n")
+    write_text(goal_file(gid), "\n".join(lines))
+
+def read_persona(): return read_text(PERSONA)
+
+def next_id(scope):
+    pattern = {"daily":"D","monthly":"M","yearly":"Y"}[scope]
+    nums=[]
+    for name in os.listdir(ITEMS):
+        if not name.endswith(".md"): continue
+        m=re.match(rf"({pattern})-(\d{{3}})\.md$", name, re.I)
+        if m: nums.append(int(m.group(2)))
+    return f"{pattern}-{(max(nums) if nums else 0)+1:03d}"
+
+def link_steps(steps, gid):
+    return steps
+
+# ---------- LLM (grounded, no nonsense) ----------
+def llm_refine(persona, goal_text, current_steps, progress_notes):
+    mode = LLM_MODE.lower()
+    prompt = f"""Persona:
+{persona}
+
+You are a tough, practical critic. Refine steps for the goal below.
+Rules:
+- Be concrete, lawful, and realistic for an average person at home.
+- Reject irrelevant or silly steps (e.g., do NOT mention NAS/backups for cooking).
+- Prefer 4-8 steps max. No hallucinations. No brand spam.
+- If the goal is vague, rewrite steps to clarify what to do next.
+- Consider the user's latest progress and remove steps already completed.
+- Output ONLY the steps, one per line (no numbers, no extra text).
+
+Goal:
+{goal_text}
+
+Current steps (may be low quality):
+{chr(10).join(current_steps)}
+
+User notes:
+{progress_notes or "(none)"}"""
+    if mode=="ollama":
+        try:
+            url = f"{OLLAMA.get('base_url','http://host.docker.internal:11434')}/api/generate"
+            r = requests.post(url, json={"model": OLLAMA.get("model","llama3.1:8b"), "prompt": prompt, "stream": False}, timeout=120)
+            r.raise_for_status()
+            txt = r.json().get("response","").strip()
+            steps = [re.sub(r"^\d+\.\s*","",s).strip("-• ").strip() for s in txt.splitlines() if s.strip()]
+            steps = [s for s in steps if s] or current_steps
+            return steps, "Grounded refinement"
+        except:
+            return current_steps, "Model error (kept prior)"
+    elif mode=="openai":
+        try:
+            api = os.environ.get(OPENAI.get("api_key_env","OPENAI_API_KEY"),"")
+            if not api: return current_steps, "No API key"
+            headers = {"Authorization": f"Bearer {api}"}
+            body = {"model": OPENAI.get("model","gpt-4o-mini"),
+                    "messages":[
+                      {"role":"system","content":"You write concrete, safe, non-hallucinated steps."},
+                      {"role":"user","content": prompt}
+                    ]}
+            r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=body, timeout=120)
+            r.raise_for_status()
+            txt = r.json()["choices"][0]["message"]["content"].strip()
+            steps = [re.sub(r"^\d+\.\s*","",s).strip("-• ").strip() for s in txt.splitlines() if s.strip()]
+            steps = [s for s in steps if s] or current_steps
+            return steps, "Grounded refinement"
+        except:
+            return current_steps, "Model error (kept prior)"
+    else:
+        return current_steps, "LLM disabled"
+
+def is_checked_done(scope, gid):
+    mp={"daily":DAILY,"monthly":MONTHLY,"yearly":YEARLY}
+    return bool(re.search(rf"- \[x\]\s+{gid}\b", read_text(mp[scope]), re.I))
+
+# ---------- Iteration loop ----------
+def scan_goals():
+    d=parse_master(DAILY,"daily",hide_done=True)
+    m=parse_master(MONTHLY,"monthly",hide_done=True)
+    y=parse_master(YEARLY,"yearly",hide_done=True)
+    for g in d+m+y: ensure_item(g)
+    return d,m,y
+
+def iterate_once():
+    persona = read_persona()
+    d,m,y = scan_goals()
+    today = dt.date.today().isoformat()
+    digest = [f"# Run {today}\n"]
+    for bucket,label in [(d,"Daily"),(m,"Monthly"),(y,"Yearly")]:
+        digest.append(f"## {label}")
+        for g in bucket:
+            it = load_item(g["id"])
+            if is_checked_done(it["scope"], it["id"]):
+                src = goal_file(it["id"])
+                if os.path.exists(src):
+                    dst = os.path.join(DONE, f"{dt.datetime.now(ET).strftime('%Y%m%d-%H%M%S')}_{it['id']}.md")
+                    shutil.move(src, dst)
+                digest.append(f"- [{g['id']}] {g['title']} — Done (archived)")
+                continue
+            new_steps, reason = llm_refine(persona, it["original"] or it["summary"], it["steps"], it["progress"])
+            it["steps"] = link_steps(new_steps, it["id"])
+            it["iteration_count"] = int(it["iteration_count"])+1
+            it["last_runtime"] = iso_now()
+            it["changelog"].append({"ts": it["last_runtime"], "note": f"Refined — {reason}"})
+            save_item(it["id"], it)
+            digest.append(f"- [{g['id']}] {g['title']} — Iter {it['iteration_count']}: Refined")
+    write_text(os.path.join(RUNS, f"{today}-digest.md"), "\n".join(digest))
+
+# ---------- Web ----------
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/")
+def index():
+    d,m,y = scan_goals()
+    return render_template("index.html",
+        title="ASTRA-X Overthinker",
+        today=dt.date.today().strftime("%-m/%-d/%Y"),
+        daily=d, monthly=m, yearly=y)
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/quickadd/<scope>", methods=["POST"])
+def quickadd(scope):
+    scope = scope.lower()
+    assert scope in ("daily","monthly","yearly")
+    lines = (request.form.get("lines","") or "").splitlines()
+    file_map={"daily":DAILY,"monthly":MONTHLY,"yearly":YEARLY}
+    master = read_text(file_map[scope]) or f"# {scope.capitalize()}\n"
+    for raw in lines:
+        text = raw.strip()
+        if not text: continue
+        m = re.match(r"^\s*([DMY]-\d{3})\s+(.*)$", text, re.I)
+        if m:
+            gid, title = m.group(1).upper(), m.group(2).strip()
+        else:
+            gid = next_id(scope)
+            title = text
+        master += f"- [ ] {gid} {title}\n"
+        ensure_item({"id":gid,"title":title,"scope":scope}, initial_progress=raw.strip())
+    write_text(file_map[scope], master)
+    return redirect("/")
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/goal/<gid>")
+def goal_page(gid):
+    item = load_item(gid.upper())
+    return render_template("goal.html", title=f"{gid}", goal=item)
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/goal/<gid>/save", methods=["POST"])
+def goal_save(gid):
+    gid = gid.upper()
+    it = load_item(gid)
+
+    # Persist exactly what the user typed (normalize CRLF to LF)
+    posted = (request.form.get("progress", "") or "").replace("\r\n", "\n")
+    it["progress"] = posted
+
+    save_item(gid, it)
+
+    # Done checkbox -> mark [x] in master and archive file
+    done = (request.form.get("done") == "on")
+    if done:
+        try:
+            mark_master_done(it.get("scope","daily"), gid)
+        except Exception:
+            pass
+        src = goal_file(gid)
+        if os.path.exists(src):
+            dst = os.path.join(DONE, f"{dt.datetime.now().strftime("%Y%m%d-%H%M%S")}_{gid}.md")
+            shutil.move(src, dst)
+
+    return redirect(f"/goal/{gid}?t={int(time.time())}")
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/status")
+def status():
+    try:
+        next_run = SCHEDULER.get_job("iterate").next_run_time
+        if next_run:
+            next_run = next_run.astimezone(ET).strftime("%-m/%-d/%Y %-I:%M %p")
+    except Exception:
+        next_run = "—"
+    d,m,y = scan_goals()
+    return render_template("status.html" if os.path.exists(os.path.join("templates","status.html")) else "index.html",
+        title="Status",
+        today=dt.date.today().strftime("%-m/%-d/%Y"),
+        daily=d, monthly=m, yearly=y,
+        next_run=next_run)
+
+# ---------- Scheduler API endpoints (moved up, before __main__) ----------
+def _scheduler_job():
+    try:
+        return SCHEDULER.get_job("iterate")
+    except Exception:
+        return None
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/api/scheduler/status", methods=["GET"])
+def api_scheduler_status():
+    job = _scheduler_job()
+    enabled = bool(job and (job.next_run_time is not None))
+    try:
+        nrt = job.next_run_time.astimezone(ET).strftime("%-m/%-d/%Y %-I:%M %p") if job and job.next_run_time else "—"
+    except Exception:
+        nrt = "—"
+    return {"enabled": enabled, "next_run": nrt}
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/api/scheduler/toggle", methods=["POST"])
+def api_scheduler_toggle():
+    job = _scheduler_job()
+    if not job:
+        return {"ok": False, "error": "iterate job not found"}, 500
+    if job.next_run_time is None:
+        SCHEDULER.resume_job("iterate")
+        state = "on"
+    else:
+        SCHEDULER.pause_job("iterate")
+        state = "off"
+    return {"ok": True, "state": state}
+
+@app.after_request
+def add_no_cache_headers(resp):
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
+@app.route("/api/run_once", methods=["POST"])
+def api_run_once():
+    iterate_once()
+    return {"ok": True, "ran": True, "ts": fmt_ts(iso_now())}
+
+# ---------- App boot ----------
+if __name__ == "__main__":
+    SCHEDULER = BackgroundScheduler()
+    SCHEDULER.add_job(iterate_once, "interval",
+        minutes=int(CFG.get("iteration_interval_minutes", 60)),
+        id="iterate", max_instances=1, coalesce=True)
+    SCHEDULER.start()
+    _ = scan_goals()
+    app.run(host="0.0.0.0", port=7000)
+
+
+
+
+
+
+

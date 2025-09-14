@@ -1,0 +1,39 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="meta">{{ goal.scope|capitalize }} • {{ goal.id }} • Iter {{ goal.iteration_count }} • Last run {{ goal.last_runtime|fmt_ts }}</div>
+  <h2>{{ goal.summary }}</h2>
+  <p><em>{{ goal.original }}</em></p>
+
+  <h3>Path to completion</h3>
+  <ol>
+    {% for s in goal.steps %}<li>{{ s }}</li>{% endfor %}
+  </ol>
+</div>
+
+<div class="card">
+  <h3>Progress (append-only journal)</h3>
+  <pre class="mono" style="white-space:pre-wrap; border:1px solid #ddd; border-radius:8px; padding:10px; background:#fafafa; min-height:80px">{{ goal.progress or "(no notes yet)" }}</pre>
+
+  <form method="post" action="/goal/{{ goal.id }}/append" style="margin-top:12px">
+    <label><strong>Append new progress</strong></label>
+    <textarea name="append_text" rows="3" placeholder="What changed? What did you try?" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px"></textarea>
+    <div style="margin-top:8px">
+      <button class="btn primary" type="submit">Append</button>
+      <a class="btn" href="/goal/{{ goal.id }}">Refresh</a>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Done</h3>
+  <form method="post" action="/goal/{{ goal.id }}/save">
+    <label><input type="checkbox" name="done"/> Mark as done</label>
+    <button class="btn" type="submit">Save</button>
+  </form>
+</div>
+
+<p><a class="btn" href="/">← Back</a></p>
+{% endblock %}
+
+
