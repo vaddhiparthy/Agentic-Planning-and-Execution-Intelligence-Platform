@@ -1,0 +1,55 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="meta">{{ goal.scope|capitalize }} • <span class="mono">{{ goal.id }}</span> • Iter {{ goal.iteration_count }} • Last run <span class="ts">{{ goal.last_runtime|fmt_ts }}</span></div>
+  <h2 class="title" style="margin:.4rem 0 0">{{ goal.summary }}</h2>
+  <p class="subtitle"><em>{{ goal.original }}</em></p>
+
+  <div class="divider"></div>
+
+  <div class="section-title">
+    <h3>Path to completion</h3>
+  </div>
+  <ol class="list">
+    {% for s in goal.steps %}
+      <li>{{ s }}</li>
+    {% endfor %}
+  </ol>
+</div>
+
+<div class="card">
+  <div class="section-title">
+    <h3>Progress</h3>
+  </div>
+
+  <!-- Read-only history pulled from markdown -->
+  <div class="readonly" style="min-height:80px" id="progress-readonly">
+    {{ goal.progress or "No notes yet." }}
+  </div>
+
+  <div class="spacer"></div>
+  <form method="post" action="/goal/{{ goal.id }}/save">
+    <label class="kicker">Submit new progress (appends a timestamped line)</label>
+    <textarea name="progress" rows="3" placeholder="Short update..."></textarea>
+
+    <div class="spacer"></div>
+    <label><input type="checkbox" name="done" {% if goal.done %}checked{% endif %}/> Mark as done</label>
+    <div class="spacer"></div>
+    <button class="btn primary" type="submit">Append</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="section-title"><h3>Change log</h3></div>
+  <ul class="list">
+    {% for c in goal.changelog %}
+      <li class="mono">{{ c.ts|fmt_ts }} — {{ c.note }}</li>
+    {% endfor %}
+    {% if goal.changelog|length == 0 %}<li class="muted">No changes yet.</li>{% endif %}
+  </ul>
+</div>
+
+<div style="margin-top:8px">
+  <a class="btn" href="/">← Back</a>
+</div>
+{% endblock %}
