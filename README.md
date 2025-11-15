@@ -72,10 +72,3 @@ The app is configured via `config.yaml` and runs against a “vault root”:
   - `templates/index.html` — dashboard view (lists open goals by scope).
   - `templates/goal.html` — per-goal detail view.
 
-### Master parsing / item bootstrap
-
-```python
-GOAL_LINE = re.compile(r"^- \[(?: |x)\]\s+([DMY]-\d{3})\s+(.*)$", re.I)
-
-def parse_master(path, scope, hide_done=True):
-    ...
