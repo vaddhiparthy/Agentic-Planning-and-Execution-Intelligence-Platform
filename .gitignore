@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# Env / IDE
+.env
+.venv/
+.vscode/
+.idea/
+
+# Overthinker private data
+prompts/
+data/
+config/
+ui/.cache/
+
+# OS
+.DS_Store
+Thumbs.db

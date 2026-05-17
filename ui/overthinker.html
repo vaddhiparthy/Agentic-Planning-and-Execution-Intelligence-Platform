@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>ASTRA-X Overthinker v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+  :root{
+    --bg:#f2ece3;
+    --panel:#fffaf2;
+    --panel-strong:#fffefb;
+    --ink:#1f1a16;
+    --muted:#72675d;
+    --line:#d6c4b1;
+    --accent:#b44f2c;
+    --accent-strong:#8e3315;
+    --accent-soft:#f1d8c7;
+    --shadow:0 16px 40px rgba(76,42,21,.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at top left, rgba(180,79,44,.18), transparent 30%),
+      radial-gradient(circle at top right, rgba(143,94,52,.14), transparent 24%),
+      linear-gradient(180deg, #f7f0e7, #efe5d7);
+    font:15px/1.45 "Trebuchet MS", "Segoe UI", sans-serif;
+  }
+  header{
+    padding:22px 24px 18px;
+    border-bottom:1px solid rgba(31,26,22,.08);
+    backdrop-filter:blur(10px);
+  }
+  .brand{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  h1{
+    margin:0;
+    font:600 32px/1.05 Georgia, "Times New Roman", serif;
+    letter-spacing:.02em;
+  }
+  .tagline{color:var(--muted);max-width:720px}
+  .tabs{
+    margin-top:16px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .tab-btn{
+    border:1px solid var(--line);
+    background:rgba(255,250,242,.75);
+    color:var(--ink);
+    border-radius:999px;
+    padding:10px 15px;
+    cursor:pointer;
+    transition:.2s ease;
+  }
+  .tab-btn.active,.tab-btn:hover{
+    background:var(--accent);
+    color:#fff7f2;
+    border-color:var(--accent);
+  }
+  main{
+    max-width:1200px;
+    margin:0 auto;
+    padding:22px 24px 32px;
+  }
+  .hero-grid,.panel-grid{
+    display:grid;
+    gap:16px;
+  }
+  .hero-grid{grid-template-columns:2fr 1fr}
+  .panel-grid{grid-template-columns:repeat(12, 1fr)}
+  .panel{
+    display:none;
+    background:rgba(255,250,242,.82);
+    border:1px solid rgba(214,196,177,.85);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    padding:18px;
+  }
+  .panel.active{display:block}
+  .card{
+    background:var(--panel-strong);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px;
+    box-shadow:0 8px 22px rgba(76,42,21,.05);
+  }
+  .span-4{grid-column:span 4}
+  .span-5{grid-column:span 5}
+  .span-6{grid-column:span 6}
+  .span-7{grid-column:span 7}
+  .span-8{grid-column:span 8}
+  .span-12{grid-column:span 12}
+  h2,h3,h4{margin:0 0 10px}
+  h2{font:600 24px/1.15 Georgia, "Times New Roman", serif}
+  h3{font:600 19px/1.2 Georgia, "Times New Roman", serif}
+  p{margin:0 0 12px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+  input,select,textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:#fffdfa;
+    color:var(--ink);
+    padding:10px 12px;
+    font:inherit;
+  }
+  textarea{min-height:120px;resize:vertical}
+  button{
+    border:0;
+    border-radius:12px;
+    padding:10px 14px;
+    background:var(--accent);
+    color:#fffaf6;
+    cursor:pointer;
+    font-weight:600;
+  }
+  button.secondary{
+    background:#ede2d3;
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  button.ghost{
+    background:transparent;
+    color:var(--accent-strong);
+    border:1px solid var(--line);
+  }
+  .row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    align-items:center;
+  }
+  .row > *{flex:1 1 160px}
+  .row.tight > *{flex:0 1 auto}
+  .status,.meta{
+    white-space:pre-wrap;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .alert{
+    margin-top:12px;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:#f7efe4;
+    color:var(--ink);
+    font-size:13px;
+    white-space:pre-wrap;
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:7px 10px;
+    border-radius:999px;
+    background:var(--accent-soft);
+    color:var(--accent-strong);
+    font-size:12px;
+    font-weight:700;
+  }
+  .goal-list,.history-list,.feedback-list{
+    display:grid;
+    gap:12px;
+  }
+  .goal-item,.history-item,.feedback-item{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+    background:#fffefb;
+  }
+  .goal-item textarea{min-height:80px}
+  .history-item pre{
+    margin:10px 0 0;
+    padding:12px;
+    background:#f7efe4;
+    border-radius:12px;
+    white-space:pre-wrap;
+    overflow:auto;
+    max-height:260px;
+  }
+  .checkboxes{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .checkboxes label{
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    color:var(--ink);
+  }
+  .checkboxes input{width:auto}
+  .muted-note{font-size:12px;color:var(--muted)}
+  code{font-family:Consolas, "Courier New", monospace}
+  @media (max-width: 920px){
+    .hero-grid{grid-template-columns:1fr}
+    .panel-grid{grid-template-columns:1fr}
+    .span-4,.span-5,.span-6,.span-7,.span-8,.span-12{grid-column:span 1}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div>
+      <h1>ASTRA-X Overthinker</h1>
+      <div class="tagline">Structured planning loops, run history, and full runtime control without markdown files pretending to be a database.</div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="goals">Goals</button>
+        <button class="tab-btn" data-tab="runs">Runs</button>
+        <button class="tab-btn" data-tab="feedback">Feedback</button>
+        <button class="tab-btn" data-tab="control">Control Panel</button>
+      </div>
+    </div>
+    <div class="card" style="min-width:260px">
+      <div class="pill" id="schedulerPill">Scheduler loading</div>
+      <div class="meta" id="topMeta" style="margin-top:10px">Loading control state...</div>
+      <div class="alert" id="runtimeAlert">Loading runtime diagnostics...</div>
+    </div>
+  </div>
+</header>
+<main>
+  <section id="tab-goals" class="panel active">
+    <div class="hero-grid">
+      <div class="card">
+        <h2>Structured Goals</h2>
+        <p>Each scope is now stored as ordered goal items with notes. This keeps planning data queryable and removes the markdown-editing bottleneck.</p>
+        <div class="row tight">
+          <div style="min-width:220px">
+            <label for="goalScope">Scope</label>
+            <select id="goalScope">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div style="align-self:end">
+            <button id="reloadGoals" class="secondary">Reload</button>
+          </div>
+          <div style="align-self:end">
+            <button id="addGoal" class="ghost">Add Goal Item</button>
+          </div>
+          <div style="align-self:end">
+            <button id="saveGoals">Save Goals</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Status</h3>
+        <div class="status" id="goalsStatus">No goal scope loaded yet.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="goal-list" id="goalList"></div>
+      <div style="margin-top:16px">
+        <label for="goalNotes">Scope Notes</label>
+        <textarea id="goalNotes" placeholder="Constraints, context, dependencies, or anything the planner should keep in view."></textarea>
+      </div>
+      <div style="margin-top:16px">
+        <label for="goalImport">Import old markdown bullets</label>
+        <textarea id="goalImport" placeholder="- Finish migration&#10;- Clean up auth flow"></textarea>
+        <div class="row tight" style="margin-top:10px">
+          <button id="importGoals" class="secondary">Import Markdown</button>
+          <div class="muted-note">Simple bullet lines become structured goal items. Other lines become scope notes.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-runs" class="panel">
+    <div class="panel-grid">
+      <div class="card span-5">
+        <h2>Run Controls</h2>
+        <div class="row">
+          <div>
+            <label for="runScope">Scope</label>
+            <select id="runScope">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div style="align-self:end">
+            <button id="runNow">Run Iteration</button>
+          </div>
+          <div style="align-self:end">
+            <button id="archiveRun" class="secondary">Archive Current</button>
+          </div>
+          <div style="align-self:end">
+            <button id="reloadRuns" class="ghost">Reload Runs</button>
+          </div>
+        </div>
+        <div class="status" id="runStatus" style="margin-top:12px">Run state idle.</div>
+      </div>
+      <div class="card span-7">
+        <h3>Current Plan</h3>
+        <textarea id="currentPlan" readonly></textarea>
+      </div>
+      <div class="card span-12">
+        <h3>Run History</h3>
+        <div class="history-list" id="runHistory"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-feedback" class="panel">
+    <div class="panel-grid">
+      <div class="card span-5">
+        <h2>Feedback Queue</h2>
+        <div class="row">
+          <div>
+            <label for="feedbackScope">Scope</label>
+            <select id="feedbackScope">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div style="align-self:end">
+            <button id="reloadFeedback" class="secondary">Reload</button>
+          </div>
+        </div>
+        <label for="feedbackText">New Feedback</label>
+        <textarea id="feedbackText" placeholder="Tell the next iteration what changed, what failed, or what must be prioritized."></textarea>
+        <div class="row tight" style="margin-top:10px">
+          <button id="saveFeedback">Append Feedback</button>
+          <div class="status" id="feedbackStatus"></div>
+        </div>
+      </div>
+      <div class="card span-7">
+        <h3>Recent Feedback</h3>
+        <div class="feedback-list" id="feedbackList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-control" class="panel">
+    <div class="panel-grid">
+      <div class="card span-12">
+        <h2>Control Panel</h2>
+        <p>Every runtime config field lives here. Host, port, and CORS changes are saved immediately but require a server restart to rebind the process.</p>
+        <div class="status" id="controlStatus">Loading config...</div>
+      </div>
+      <div class="card span-4">
+        <h3>Model</h3>
+        <label for="modelProvider">Provider</label>
+        <select id="modelProvider">
+          <option value="openai">OpenAI-compatible</option>
+          <option value="ollama">Ollama</option>
+        </select>
+        <label for="modelName">Model Name</label>
+        <input id="modelName" list="ollamaModelList"/>
+        <datalist id="ollamaModelList"></datalist>
+        <label for="apiBase">API Base</label>
+        <input id="apiBase" placeholder="Optional base URL"/>
+        <label for="apiKeyEnv">API Key Env Var</label>
+        <input id="apiKeyEnv"/>
+        <label for="temperature">Temperature</label>
+        <input id="temperature" type="number" step="0.05" min="0" max="2"/>
+        <label for="maxTokens">Max Tokens</label>
+        <input id="maxTokens" type="number" min="128"/>
+        <label for="timeoutSeconds">Request Timeout Seconds</label>
+        <input id="timeoutSeconds" type="number" min="5"/>
+      </div>
+      <div class="card span-4">
+        <h3>Scheduler</h3>
+        <div class="checkboxes" style="margin-bottom:10px">
+          <label><input type="checkbox" id="autopilot"/> Autopilot enabled</label>
+          <label><input type="checkbox" id="runOnStartup"/> Run on startup</label>
+        </div>
+        <label for="hourlyIterations">Hourly Iterations</label>
+        <input id="hourlyIterations" type="number" min="1" max="12"/>
+        <div class="muted-note" id="intervalHint">Derived interval: --</div>
+        <label for="rateLimit">Rate Limit Per Day</label>
+        <input id="rateLimit" type="number" min="1"/>
+        <label for="quietHours">Quiet Hours</label>
+        <input id="quietHours" placeholder="02:00-04:00"/>
+        <label>Autopilot Scopes</label>
+        <div class="checkboxes">
+          <label><input type="checkbox" id="scopeDaily" value="daily"/> Daily</label>
+          <label><input type="checkbox" id="scopeWeekly" value="weekly"/> Weekly</label>
+          <label><input type="checkbox" id="scopeYearly" value="yearly"/> Yearly</label>
+        </div>
+      </div>
+      <div class="card span-4">
+        <h3>Runtime Host</h3>
+        <label for="runtimeHost">Host</label>
+        <input id="runtimeHost"/>
+        <label for="runtimePort">Port</label>
+        <input id="runtimePort" type="number" min="1" max="65535"/>
+        <label for="runtimeCors">CORS Origins</label>
+        <textarea id="runtimeCors" placeholder="Comma-separated origins or *"></textarea>
+        <label for="defaultScope">Default UI Scope</label>
+        <select id="defaultScope">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="yearly">Yearly</option>
+        </select>
+      </div>
+      <div class="card span-12">
+        <h3>Storage</h3>
+        <div class="row">
+          <div>
+            <label for="storageBackend">Backend</label>
+            <select id="storageBackend">
+              <option value="postgres">PostgreSQL</option>
+              <option value="sqlite">SQLite</option>
+            </select>
+          </div>
+          <div>
+            <label for="pgHost">Postgres Host</label>
+            <input id="pgHost"/>
+          </div>
+          <div>
+            <label for="pgPort">Postgres Port</label>
+            <input id="pgPort" type="number" min="1" max="65535"/>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="pgDatabase">Postgres Database</label>
+            <input id="pgDatabase"/>
+          </div>
+          <div>
+            <label for="pgUser">Postgres User</label>
+            <input id="pgUser"/>
+          </div>
+          <div>
+            <label for="pgPassword">Postgres Password</label>
+            <input id="pgPassword" type="password"/>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="pgSchema">Schema</label>
+            <input id="pgSchema"/>
+          </div>
+          <div>
+            <label for="pgPrefix">Table Prefix</label>
+            <input id="pgPrefix"/>
+          </div>
+        </div>
+      </div>
+      <div class="card span-12">
+        <div class="row tight">
+          <button id="saveControl">Save Control Panel</button>
+          <button id="reloadControl" class="secondary">Reload Config</button>
+        </div>
+        <div class="meta" id="pathMeta" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+  const state = {
+    config: null,
+    scheduler: null,
+    goalDocument: null,
+    ollamaModels: [],
+    scopeReadiness: [],
+    initialized: false,
+  };
+
+  const goalScope = document.getElementById('goalScope');
+  const runScope = document.getElementById('runScope');
+  const feedbackScope = document.getElementById('feedbackScope');
+
+  function activateTab(name){
+    document.querySelectorAll('.tab-btn').forEach(btn=>btn.classList.toggle('active', btn.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(panel=>panel.classList.toggle('active', panel.id === `tab-${name}`));
+  }
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=>activateTab(btn.dataset.tab)));
+
+  function apiError(error){
+    if(error instanceof Error){
+      try{
+        const parsed = JSON.parse(error.message);
+        if(parsed && typeof parsed.detail === 'string'){
+          return parsed.detail;
+        }
+      }catch(parseError){
+      }
+      return error.message;
+    }
+    return String(error);
+  }
+
+  function scopeReadinessFor(scope){
+    return (state.scopeReadiness || []).find(entry=>entry.scope === scope) || null;
+  }
+
+  async function jget(url){
+    const response = await fetch(url, {cache:'no-store'});
+    const text = await response.text();
+    if(!response.ok){
+      throw new Error(text);
+    }
+    return text ? JSON.parse(text) : {};
+  }
+
+  async function jput(url, body){
+    const response = await fetch(url, {
+      method:'PUT',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const text = await response.text();
+    if(!response.ok) throw new Error(text);
+    return text ? JSON.parse(text) : {};
+  }
+
+  async function jpost(url, body){
+    const response = await fetch(url, {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    const text = await response.text();
+    if(!response.ok) throw new Error(text);
+    return text ? JSON.parse(text) : {};
+  }
+
+  function escapeHtml(value){
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function intervalHint(){
+    const hourlyIterations = Math.max(1, Number(document.getElementById('hourlyIterations').value || 1));
+    const seconds = Math.max(300, Math.round(3600 / hourlyIterations));
+    document.getElementById('intervalHint').textContent = `Derived interval: ${(seconds/60).toFixed(2)} minutes (${seconds}s)`;
+  }
+
+  function renderGoalItems(items){
+    const host = document.getElementById('goalList');
+    host.innerHTML = '';
+    if(!items.length){
+      host.innerHTML = '<div class="muted-note">No goal items yet. Add one and save.</div>';
+      return;
+    }
+    items.forEach((item, index)=>{
+      const wrapper = document.createElement('div');
+      wrapper.className = 'goal-item';
+      wrapper.innerHTML = `
+        <div class="row">
+          <div>
+            <label>Title</label>
+            <input data-field="title" value="${escapeHtml(item.title || '')}"/>
+          </div>
+          <div>
+            <label>Priority</label>
+            <select data-field="priority">
+              ${[1,2,3,4,5].map(level=>`<option value="${level}" ${Number(item.priority)===level?'selected':''}>${level}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label>Active</label>
+            <select data-field="active">
+              <option value="true" ${item.active ? 'selected' : ''}>Yes</option>
+              <option value="false" ${!item.active ? 'selected' : ''}>No</option>
+            </select>
+          </div>
+        </div>
+        <label>Details</label>
+        <textarea data-field="details">${escapeHtml(item.details || '')}</textarea>
+        <div class="row tight" style="margin-top:10px">
+          <button class="ghost" data-action="up">Move Up</button>
+          <button class="ghost" data-action="down">Move Down</button>
+          <button class="secondary" data-action="remove">Remove</button>
+        </div>
+      `;
+      wrapper.querySelectorAll('[data-field]').forEach(el=>{
+        el.addEventListener('input', ()=>{
+          if(el.dataset.field === 'priority'){
+            state.goalDocument.items[index].priority = Number(el.value);
+          }else if(el.dataset.field === 'active'){
+            state.goalDocument.items[index].active = el.value === 'true';
+          }else{
+            state.goalDocument.items[index][el.dataset.field] = el.value;
+          }
+        });
+      });
+      wrapper.querySelector('[data-action="remove"]').addEventListener('click', ()=>{
+        state.goalDocument.items.splice(index, 1);
+        renderGoalItems(state.goalDocument.items);
+      });
+      wrapper.querySelector('[data-action="up"]').addEventListener('click', ()=>{
+        if(index === 0) return;
+        const temp = state.goalDocument.items[index - 1];
+        state.goalDocument.items[index - 1] = state.goalDocument.items[index];
+        state.goalDocument.items[index] = temp;
+        renderGoalItems(state.goalDocument.items);
+      });
+      wrapper.querySelector('[data-action="down"]').addEventListener('click', ()=>{
+        if(index >= state.goalDocument.items.length - 1) return;
+        const temp = state.goalDocument.items[index + 1];
+        state.goalDocument.items[index + 1] = state.goalDocument.items[index];
+        state.goalDocument.items[index] = temp;
+        renderGoalItems(state.goalDocument.items);
+      });
+      host.appendChild(wrapper);
+    });
+  }
+
+  async function loadGoalDocument(){
+    const scope = goalScope.value;
+    try{
+      const documentPayload = await jget(`/api/goals/${scope}`);
+      state.goalDocument = documentPayload;
+      document.getElementById('goalNotes').value = documentPayload.notes || '';
+      renderGoalItems(documentPayload.items || []);
+      const readiness = scopeReadinessFor(scope);
+      const suffix = readiness && readiness.active_goal_count === 0
+        ? ' No active goals yet, so iterations for this scope will fail until you add at least one.'
+        : '';
+      document.getElementById('goalsStatus').textContent = `Loaded ${scope} goals. Last updated: ${documentPayload.updated_at || 'n/a'}.${suffix}`;
+    }catch(error){
+      document.getElementById('goalsStatus').textContent = `Goal load failed: ${apiError(error)}`;
+    }
+  }
+
+  async function saveGoalDocument(){
+    if(!state.goalDocument){
+      return;
+    }
+    const scope = goalScope.value;
+    const payload = {
+      items: state.goalDocument.items.map((item, index)=>({
+        ...item,
+        order:index,
+      })),
+      notes: document.getElementById('goalNotes').value
+    };
+    try{
+      const response = await jput(`/api/goals/${scope}`, payload);
+      state.goalDocument = response.document;
+      await loadControlPanel();
+      document.getElementById('goalsStatus').textContent = `Saved ${scope} goals with ${response.document.items.length} structured items.`;
+      renderGoalItems(state.goalDocument.items || []);
+    }catch(error){
+      document.getElementById('goalsStatus').textContent = `Goal save failed: ${apiError(error)}`;
+    }
+  }
+
+  async function importGoalMarkdown(){
+    try{
+      const response = await jpost(`/api/goals/${goalScope.value}/import-markdown`, {text: document.getElementById('goalImport').value});
+      state.goalDocument = response.document;
+      await loadControlPanel();
+      document.getElementById('goalNotes').value = response.document.notes || '';
+      renderGoalItems(response.document.items || []);
+      document.getElementById('goalImport').value = '';
+      document.getElementById('goalsStatus').textContent = `Imported markdown into ${response.document.items.length} goal items.`;
+    }catch(error){
+      document.getElementById('goalsStatus').textContent = `Markdown import failed: ${apiError(error)}`;
+    }
+  }
+
+  async function loadRuns(){
+    const scope = runScope.value;
+    try{
+      const [current, history] = await Promise.all([
+        jget(`/api/runs/${scope}/current`),
+        jget(`/api/runs/${scope}/history?limit=12`)
+      ]);
+      document.getElementById('currentPlan').value = current.current ? current.current.plan_markdown : '';
+      const host = document.getElementById('runHistory');
+      host.innerHTML = '';
+      if(!(history.runs || []).length){
+        host.innerHTML = '<div class="muted-note">No runs stored for this scope yet.</div>';
+      }else{
+        history.runs.forEach(run=>{
+          const article = document.createElement('article');
+          article.className = 'history-item';
+          article.innerHTML = `
+            <div class="row tight">
+              <div class="pill">${run.status.toUpperCase()}</div>
+              <div class="pill">${escapeHtml((run.trigger || 'manual').toUpperCase())}</div>
+              <strong>${escapeHtml(run.run_id)}</strong>
+              <span class="meta">${escapeHtml(run.created_at)}</span>
+            </div>
+            <div style="margin-top:8px">${escapeHtml(run.summary || 'No summary')}</div>
+            <div class="meta" style="margin-top:6px">Provider: ${escapeHtml(run.provider || 'n/a')} | Configured model: ${escapeHtml(run.configured_model || 'n/a')} | Effective model: ${escapeHtml(run.effective_model || 'n/a')}</div>
+            <pre>${escapeHtml(run.plan_markdown || '')}</pre>
+          `;
+          host.appendChild(article);
+        });
+      }
+      const readiness = scopeReadinessFor(scope);
+      const blockedMessage = readiness && !readiness.can_run && readiness.reasons.length
+        ? ` Blocked: ${readiness.reasons.join(' ')}`
+        : '';
+      document.getElementById('runStatus').textContent = `Loaded runs for ${scope}.${blockedMessage}`;
+    }catch(error){
+      document.getElementById('runStatus').textContent = `Run load failed: ${apiError(error)}`;
+    }
+  }
+
+  async function runIteration(){
+    const scope = runScope.value;
+    const readiness = scopeReadinessFor(scope);
+    if(readiness && !readiness.can_run){
+      document.getElementById('runStatus').textContent = `Run blocked for ${scope}: ${readiness.reasons.join(' ')}`;
+      return;
+    }
+    document.getElementById('runStatus').textContent = `Running ${scope} iteration...`;
+    try{
+      const response = await jpost('/api/runs', {scope});
+      await loadRuns();
+      await loadControlPanel();
+      document.getElementById('runStatus').textContent = `Run complete: ${response.run_id}`;
+    }catch(error){
+      document.getElementById('runStatus').textContent = `Run failed: ${apiError(error)}`;
+    }
+  }
+
+  async function archiveRun(){
+    const scope = runScope.value;
+    try{
+      const response = await jpost(`/api/runs/${scope}/archive`, {});
+      await loadRuns();
+      await loadControlPanel();
+      document.getElementById('runStatus').textContent = `Archived ${response.run.run_id}.`;
+    }catch(error){
+      document.getElementById('runStatus').textContent = `Archive failed: ${apiError(error)}`;
+    }
+  }
+
+  async function loadFeedback(){
+    try{
+      const response = await jget(`/api/feedback/${feedbackScope.value}`);
+      const host = document.getElementById('feedbackList');
+      host.innerHTML = '';
+      if(!(response.entries || []).length){
+        host.innerHTML = '<div class="muted-note">No feedback stored for this scope yet.</div>';
+      }else{
+        response.entries.forEach(entry=>{
+          const article = document.createElement('article');
+          article.className = 'feedback-item';
+          article.innerHTML = `<div class="meta">${escapeHtml(entry.created_at)}</div><div style="margin-top:6px">${escapeHtml(entry.text)}</div>`;
+          host.appendChild(article);
+        });
+      }
+      document.getElementById('feedbackStatus').textContent = `Loaded feedback for ${feedbackScope.value}.`;
+    }catch(error){
+      document.getElementById('feedbackStatus').textContent = `Feedback load failed: ${apiError(error)}`;
+    }
+  }
+
+  async function saveFeedback(){
+    try{
+      const text = document.getElementById('feedbackText').value;
+      await jpost('/api/feedback', {scope: feedbackScope.value, text});
+      document.getElementById('feedbackText').value = '';
+      await loadFeedback();
+      await loadControlPanel();
+      document.getElementById('feedbackStatus').textContent = 'Feedback appended.';
+    }catch(error){
+      document.getElementById('feedbackStatus').textContent = `Feedback save failed: ${apiError(error)}`;
+    }
+  }
+
+  function selectedAutopilotScopes(){
+    return ['daily','weekly','yearly'].filter(scope=>{
+      const id = `scope${scope.charAt(0).toUpperCase()}${scope.slice(1)}`;
+      return document.getElementById(id).checked;
+    });
+  }
+
+  function applyControlPanel(payload){
+    const currentGoalScope = goalScope.value;
+    const currentRunScope = runScope.value;
+    const currentFeedbackScope = feedbackScope.value;
+    state.config = payload.config;
+    state.scheduler = payload.scheduler;
+    state.ollamaModels = payload.diagnostics.ollama_available_models || [];
+    state.scopeReadiness = payload.diagnostics.scope_readiness || [];
+
+    const {model, schedule, runtime, storage} = payload.config;
+    document.getElementById('modelProvider').value = model.provider;
+    document.getElementById('modelName').value = payload.diagnostics.ollama_effective_model || model.model_name;
+    document.getElementById('apiBase').value = model.api_base || '';
+    document.getElementById('apiKeyEnv').value = model.api_key_env || '';
+    document.getElementById('temperature').value = model.temperature;
+    document.getElementById('maxTokens').value = model.max_tokens;
+    document.getElementById('timeoutSeconds').value = model.request_timeout_seconds;
+
+    document.getElementById('autopilot').checked = !!schedule.autopilot;
+    document.getElementById('runOnStartup').checked = !!schedule.run_on_startup;
+    document.getElementById('hourlyIterations').value = schedule.hourly_iterations;
+    document.getElementById('rateLimit').value = schedule.rate_limit_per_day;
+    document.getElementById('quietHours').value = schedule.quiet_hours;
+    document.getElementById('scopeDaily').checked = schedule.scopes.includes('daily');
+    document.getElementById('scopeWeekly').checked = schedule.scopes.includes('weekly');
+    document.getElementById('scopeYearly').checked = schedule.scopes.includes('yearly');
+
+    document.getElementById('runtimeHost').value = runtime.host;
+    document.getElementById('runtimePort').value = runtime.port;
+    document.getElementById('runtimeCors').value = (runtime.cors_origins || []).join(', ');
+    document.getElementById('defaultScope').value = runtime.ui_default_scope;
+    document.getElementById('storageBackend').value = storage.backend;
+    document.getElementById('pgHost').value = storage.postgres_host;
+    document.getElementById('pgPort').value = storage.postgres_port;
+    document.getElementById('pgDatabase').value = storage.postgres_database;
+    document.getElementById('pgUser').value = storage.postgres_user;
+    document.getElementById('pgPassword').value = storage.postgres_password;
+    document.getElementById('pgSchema').value = storage.postgres_schema;
+    document.getElementById('pgPrefix').value = storage.postgres_table_prefix;
+    if(!state.initialized){
+      goalScope.value = runtime.ui_default_scope;
+      runScope.value = runtime.ui_default_scope;
+      feedbackScope.value = runtime.ui_default_scope;
+    }else{
+      goalScope.value = currentGoalScope || runtime.ui_default_scope;
+      runScope.value = currentRunScope || runtime.ui_default_scope;
+      feedbackScope.value = currentFeedbackScope || runtime.ui_default_scope;
+    }
+
+    intervalHint();
+    document.getElementById('schedulerPill').textContent = payload.scheduler.running ? 'Scheduler active' : 'Scheduler idle';
+    document.getElementById('topMeta').textContent = `Autopilot: ${payload.scheduler.autopilot}\nProvider: ${payload.config.model.provider}\nConfigured model: ${payload.config.model.model_name}\nEffective model: ${payload.diagnostics.ollama_effective_model || payload.config.model.model_name}\nNext run: ${payload.scheduler.next_run_at || 'n/a'}\nLast run: ${payload.scheduler.last_run_at || 'n/a'}`;
+    const blockedScopes = state.scopeReadiness
+      .filter(entry=>!entry.can_run)
+      .map(entry=>`${entry.scope}: ${entry.reasons.join(' ')}`);
+    const runtimeMessages = [];
+    if(payload.diagnostics.provider_reason){
+      runtimeMessages.push(payload.diagnostics.provider_reason);
+    }
+    if(blockedScopes.length){
+      runtimeMessages.push(`Blocked scopes\n${blockedScopes.join('\n')}`);
+    }else{
+      runtimeMessages.push('All scopes are currently runnable.');
+    }
+    document.getElementById('runtimeAlert').textContent = runtimeMessages.join('\n\n');
+    document.getElementById('pathMeta').textContent = `Config: ${payload.paths.config}\nDatabase: ${payload.paths.database}\nStorage backend: ${payload.diagnostics.storage_backend}${payload.diagnostics.storage_schema ? `\nStorage schema: ${payload.diagnostics.storage_schema}` : ''}${payload.diagnostics.storage_table_prefix ? `\nStorage prefix: ${payload.diagnostics.storage_table_prefix}` : ''}\nPrompt overrides: ${payload.paths.prompt_overrides}\nProvider ready: ${payload.diagnostics.provider_ready}\nOpenAI key present: ${payload.diagnostics.openai_key_present}\nConfigured model: ${payload.config.model.model_name}\nOllama effective model: ${payload.diagnostics.ollama_effective_model || 'n/a'}${payload.diagnostics.ollama_error ? `\nOllama status: ${payload.diagnostics.ollama_error}` : ''}`;
+    document.getElementById('controlStatus').textContent = payload.scheduler.last_error
+      ? `Scheduler last error: ${payload.scheduler.last_error}`
+      : blockedScopes.length
+        ? 'Control panel loaded with blocked scopes.'
+        : 'Control panel loaded.';
+    state.initialized = true;
+  }
+
+  async function loadControlPanel(){
+    try{
+      const payload = await jget('/api/control-panel');
+      applyControlPanel(payload);
+      if((payload.config.model.provider || '').toLowerCase() === 'ollama'){
+        await loadOllamaModels();
+      }
+    }catch(error){
+      document.getElementById('controlStatus').textContent = `Control panel failed to load: ${apiError(error)}`;
+    }
+  }
+
+  async function loadOllamaModels(){
+    try{
+      const payload = await jget('/api/providers/ollama/models');
+      state.ollamaModels = payload.models || [];
+      const datalist = document.getElementById('ollamaModelList');
+      datalist.innerHTML = state.ollamaModels.map(name=>`<option value="${escapeHtml(name)}"></option>`).join('');
+      if(payload.effective_model){
+        const modelInput = document.getElementById('modelName');
+        if(!modelInput.value || !state.ollamaModels.includes(modelInput.value)){
+          modelInput.value = payload.effective_model;
+        }
+      }
+    }catch(error){
+      state.ollamaModels = [];
+      document.getElementById('controlStatus').textContent = `Ollama model list failed: ${apiError(error)}`;
+    }
+  }
+
+  async function saveControlPanel(){
+    const provider = document.getElementById('modelProvider').value;
+    const modelInput = document.getElementById('modelName');
+    let selectedModel = modelInput.value;
+    if(provider === 'ollama' && state.ollamaModels.length && !state.ollamaModels.includes(selectedModel)){
+      selectedModel = state.ollamaModels.includes(state.config?.model?.model_name)
+        ? state.config.model.model_name
+        : state.ollamaModels[0];
+      modelInput.value = selectedModel;
+    }
+    const payload = {
+      model:{
+        provider,
+        model_name:selectedModel,
+        api_base:document.getElementById('apiBase').value || null,
+        api_key_env:document.getElementById('apiKeyEnv').value,
+        temperature:Number(document.getElementById('temperature').value || 0.4),
+        max_tokens:Number(document.getElementById('maxTokens').value || 1500),
+        request_timeout_seconds:Number(document.getElementById('timeoutSeconds').value || 60),
+      },
+      schedule:{
+        autopilot:document.getElementById('autopilot').checked,
+        run_on_startup:document.getElementById('runOnStartup').checked,
+        hourly_iterations:Number(document.getElementById('hourlyIterations').value || 1),
+        rate_limit_per_day:Number(document.getElementById('rateLimit').value || 8),
+        quiet_hours:document.getElementById('quietHours').value || '02:00-04:00',
+        scopes:selectedAutopilotScopes(),
+      },
+      runtime:{
+        host:document.getElementById('runtimeHost').value,
+        port:Number(document.getElementById('runtimePort').value || 8432),
+        cors_origins:document.getElementById('runtimeCors').value.split(',').map(item=>item.trim()).filter(Boolean),
+        ui_default_scope:document.getElementById('defaultScope').value,
+      },
+      storage:{
+        backend:document.getElementById('storageBackend').value,
+        postgres_host:document.getElementById('pgHost').value,
+        postgres_port:Number(document.getElementById('pgPort').value || 5432),
+        postgres_database:document.getElementById('pgDatabase').value,
+        postgres_user:document.getElementById('pgUser').value,
+        postgres_password:document.getElementById('pgPassword').value,
+        postgres_schema:document.getElementById('pgSchema').value,
+        postgres_table_prefix:document.getElementById('pgPrefix').value,
+      }
+    };
+
+    try{
+      const response = await jpost('/api/config', payload);
+      await loadControlPanel();
+      document.getElementById('controlStatus').textContent = response.restart_required_fields.length
+        ? `Saved. Restart required for: ${response.restart_required_fields.join(', ')}`
+        : 'Saved control panel config.';
+    }catch(error){
+      document.getElementById('controlStatus').textContent = `Control panel save failed: ${apiError(error)}`;
+    }
+  }
+
+  document.getElementById('hourlyIterations').addEventListener('input', intervalHint);
+  document.getElementById('reloadGoals').addEventListener('click', loadGoalDocument);
+  document.getElementById('saveGoals').addEventListener('click', saveGoalDocument);
+  document.getElementById('importGoals').addEventListener('click', importGoalMarkdown);
+  document.getElementById('addGoal').addEventListener('click', ()=>{
+    if(!state.goalDocument){
+      state.goalDocument = {items:[], notes:''};
+    }
+    state.goalDocument.items.push({title:'', details:'', priority:3, active:true, order:state.goalDocument.items.length});
+    renderGoalItems(state.goalDocument.items);
+  });
+  document.getElementById('goalNotes').addEventListener('input', ()=>{ if(state.goalDocument){ state.goalDocument.notes = document.getElementById('goalNotes').value; } });
+  goalScope.addEventListener('change', loadGoalDocument);
+
+  document.getElementById('runNow').addEventListener('click', runIteration);
+  document.getElementById('archiveRun').addEventListener('click', archiveRun);
+  document.getElementById('reloadRuns').addEventListener('click', loadRuns);
+  runScope.addEventListener('change', loadRuns);
+
+  document.getElementById('reloadFeedback').addEventListener('click', loadFeedback);
+  document.getElementById('saveFeedback').addEventListener('click', saveFeedback);
+  feedbackScope.addEventListener('change', loadFeedback);
+
+  document.getElementById('saveControl').addEventListener('click', saveControlPanel);
+  document.getElementById('reloadControl').addEventListener('click', loadControlPanel);
+  document.getElementById('modelProvider').addEventListener('change', async ()=>{
+    if(document.getElementById('modelProvider').value === 'ollama'){
+      await loadOllamaModels();
+    }
+  });
+
+  async function boot(){
+    await loadControlPanel();
+    await loadGoalDocument();
+    await loadRuns();
+    await loadFeedback();
+  }
+
+  boot();
+</script>
+</body>
+</html>

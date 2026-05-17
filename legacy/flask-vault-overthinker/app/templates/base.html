@@ -1,0 +1,202 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+
+	<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+	<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="ASTRA-X Planner">
+
+
+
+  <style>
+    :root{
+      --bg: #0b0b0c;
+      --bg-soft: #111215;
+      --card: #15171b;
+      --text: #e7e7ea;
+      --muted: #9aa0a6;
+      --brand: #4f8cff;
+      --ok: #3ad29f;
+      --warn: #ffcc66;
+      --danger: #ff6b6b;
+      --stroke: #22242a;
+      --pill: #1f2228;
+      --input: #0f1115;
+      --shadow: 0 8px 24px rgba(0,0,0,.35);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg: #f8f9fb;
+        --bg-soft: #f1f3f7;
+        --card: #ffffff;
+        --text: #0d0e12;
+        --muted: #5c6672;
+        --brand: #245cff;
+        --stroke: #e8eaef;
+        --pill: #eef1f6;
+        --input: #ffffff;
+        --shadow: 0 8px 24px rgba(10,20,30,.08);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; padding:16px 16px 48px;
+      background:var(--bg);
+      color:var(--text);
+      font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    a{color:var(--brand); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .shell{max-width:880px; margin:0 auto}
+    .topbar{
+      position:sticky; top:0; z-index:10;
+      margin:-16px -16px 16px; padding:12px 16px env(safe-area-inset-left) 12px env(safe-area-inset-right);
+      background:linear-gradient(180deg, rgba(0,0,0,.35), transparent);
+      backdrop-filter:saturate(120%) blur(16px);
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-weight:700; letter-spacing:.2px;
+    }
+    .brand .dot{width:8px;height:8px;border-radius:999px;background:var(--ok); box-shadow:0 0 12px var(--ok)}
+    .nav{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap}
+    .btn{display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border:1px solid var(--stroke); border-radius:10px; background:var(--pill)}
+    .btn.primary{background:var(--brand); color:#fff; border-color:transparent; box-shadow: var(--shadow)}
+    .btn.small{padding:6px 10px; font-size:.92em}
+    .muted{color:var(--muted)}
+    .grid{display:grid; gap:16px}
+    @media (min-width:760px){ .grid-cols-2{grid-template-columns:1fr 1fr} }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow: var(--shadow);
+    }
+    .pill{display:inline-block; padding:4px 10px; border-radius:999px; background:var(--pill); border:1px solid var(--stroke); color:var(--muted); font-size:.9em}
+    .list{margin:0; padding-left:18px}
+    .list li{margin:.25rem 0}
+    .meta{font-size:.92em; color:var(--muted)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+
+    input[type="text"], textarea{
+      width:100%; padding:12px 12px;
+      background:var(--input); color:var(--text);
+      border:1px solid var(--stroke); border-radius:12px;
+      outline:none;
+    }
+    textarea{min-height:120px}
+    .readonly{
+      white-space:pre-wrap; background:var(--bg-soft); border:1px dashed var(--stroke);
+      padding:12px; border-radius:12px; color:var(--muted)
+    }
+    .section-title{display:flex; justify-content:space-between; align-items:center; gap:8px}
+    .section-title h3{margin:.2rem 0}
+    .spacer{height:6px}
+    .footer-space{height:24px}
+    .hidden{display:none}
+    .kicker{font-size:.9em; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+    .title{margin:.2rem 0 0}
+    .subtitle{margin:.2rem 0 1rem; color:var(--muted)}
+    .divider{height:1px;background:var(--stroke);margin:12px 0}
+    .ts{color:var(--muted)}
+
+    /* Dark/light toggle (client-side only, no server changes) */
+    .theme-toggle{margin-left:auto}
+  /* Overthinker UI overrides (safe) */
+:root{
+  --bg:#0f1116; --fg:#e7e9ea; --card:#151a1f; --muted:#9aa0a6; --border:#2a2f36; --accent:#4f8cff;
+}
+html,body{ background:var(--bg); color:var(--fg); }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:12px; }
+.muted{ color:var(--muted); }
+input[type="text"], textarea{ background:#0f1116; color:var(--fg); border:1px solid var(--border); border-radius:10px; }
+pre.progress-log{
+  background:#0f1116; color:var(--fg); border:1px solid var(--border);
+  border-radius:10px; padding:10px; margin:0; white-space:pre-wrap;
+}
+</style>
+
+  <script>
+    // dumb but effective theme toggle (persist in localStorage)
+    (function(){
+      const key='ot-theme';
+      const apply=(t)=>{ document.documentElement.dataset.theme=t; };
+      const saved=localStorage.getItem(key);
+      if(saved) apply(saved);
+      window.toggleTheme=()=>{
+        const cur=document.documentElement.dataset.theme||'auto';
+        const next=cur==='auto'?'dark':(cur==='dark'?'light':'auto');
+        localStorage.setItem(key,next); apply(next);
+      };
+    })();
+  </script>
+  <!-- PWA / iOS full-screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Overthinker">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#0b0b0c">
+  <style>
+    :root{
+      --bg:#0b0b0c; --card:#141417; --text:#e8e8ea; --muted:#9aa0a6; --border:#2a2a2e;
+    }
+    html,body{background:var(--bg); color:var(--text);}
+    .card{background:var(--card)!important; border-color:var(--border)!important}
+    .muted{color:var(--muted)}
+    pre.progress-readonly{
+      background: #0f0f12; border:1px solid var(--border); border-radius:10px; padding:10px;
+      color:var(--text); white-space:pre-wrap; margin:0
+    }
+    textarea{background:#0f0f12; color:var(--text); border:1px solid var(--border)}
+    .btn{border-color:var(--border)}
+    .btn.primary{background:#1e1e22; color:#fff; border-color:#3a3a40}
+  /* Overthinker UI overrides (safe) */
+:root{
+  --bg:#0f1116; --fg:#e7e9ea; --card:#151a1f; --muted:#9aa0a6; --border:#2a2f36; --accent:#4f8cff;
+}
+html,body{ background:var(--bg); color:var(--fg); }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:12px; }
+.muted{ color:var(--muted); }
+input[type="text"], textarea{ background:#0f1116; color:var(--fg); border:1px solid var(--border); border-radius:10px; }
+pre.progress-log{
+  background:#0f1116; color:var(--fg); border:1px solid var(--border);
+  border-radius:10px; padding:10px; margin:0; white-space:pre-wrap;
+}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="shell">
+      <div class="brand">
+        <span class="dot"></span>
+        <div>ASTRA-X Overthinker</div>
+        <button class="btn small theme-toggle" onclick="toggleTheme()" title="Toggle theme">☼/☾</button>
+      </div>
+      <div class="nav">
+        <a class="btn" href="/">Home</a>
+        <!-- Removed broken Status and duplicate Edit links -->
+      </div>
+    </div>
+  </div>
+
+  <main class="shell">
+    {% block content %}{% endblock %}
+    <div class="footer-space"></div>
+  </main>
+  <script>
+  (function(){
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js').catch(()=>{});
+    }
+  }());
+  </script>
+</body>
+</html>
+
+
