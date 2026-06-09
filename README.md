@@ -97,8 +97,7 @@ SQLite remains available as a local fallback backend.
 ├─ overthinker/
 │  ├─ api/          # FastAPI routes and diagnostics endpoints
 │  ├─ core/         # configuration, models, and filesystem paths
-│  ├─ resources/    # bundled prompt defaults
-│  ├─ services/     # planner, scheduler, and model calls
+│  ├─ services/     # planner, scheduler, model calls, and prompt registry
 │  ├─ storage/      # SQLite/PostgreSQL repositories and migration helpers
 │  └─ demo_content.py
 ├─ tests/           # repository, planner, and route smoke tests
@@ -146,17 +145,19 @@ Runtime configuration is stored in:
 config/overthinker.yaml
 ```
 
-Prompt overrides can be placed in:
+Prompt defaults are built into the code in `overthinker/services/prompt_registry.py`
+(the `DEFAULT_PROMPTS` registry), so the service runs without any prompt files present.
+
+Two optional file-based overrides can replace the `planner_system` and `planner_persona`
+templates at registry seed time, in priority order:
 
 ```text
-data/private/prompts/
+data/private/prompts/        # highest priority; runtime override (ignored by git)
+overthinker/resources/prompts/   # optional packaged override; not committed by default
 ```
 
-Bundled prompt defaults are stored under:
-
-```text
-overthinker/resources/prompts/
-```
+When a matching file (`system_planner.txt`, `persona_general.txt`) is absent from both
+locations, the built-in default for that prompt is used.
 
 ## Testing
 
