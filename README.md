@@ -1,11 +1,13 @@
 # ASTRA-X Overthinker v2
 
+
+**Portfolio:** [vaddhiparthy.com](https://vaddhiparthy.com/) | [Data Platforms](https://vaddhiparthy.com/data-platforms)
 ASTRA-X Overthinker is a FastAPI-based operations planning service. It maintains scoped goals, operator feedback, model-backed planning runs, scheduler controls, and persistent run history behind a clean public demonstration surface.
 
 The public portfolio page is published at:
 
 ```text
-https://surya.vaddhiparthy.com/overthinker/
+https://vaddhiparthy.com/overthinker/
 ```
 
 The root route is designed for portfolio review. It presents planning iteration playback and concise documentation without requiring live model credentials. The operational console remains available separately at `/ui/overthinker.html`.
