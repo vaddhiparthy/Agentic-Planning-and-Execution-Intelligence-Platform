@@ -1,20 +1,11 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 import httpx
 
-from overthinker.core.config import OverthinkerConfig, load_config
-from overthinker.core.paths import DEFAULT_PROMPTS_DIR, PROMPT_OVERRIDE_DIR
-
-
-PROMPT_FILES = {
-    "planner": "system_planner.txt",
-    "persona_general": "persona_general.txt",
-}
+from overthinker.core.config import OverthinkerConfig
 
 
 @dataclass
@@ -23,21 +14,6 @@ class LLMCallResult:
     provider: str
     configured_model: str
     effective_model: str
-
-
-def _read_prompt(path: Path) -> str:
-    if not path.exists():
-        return ""
-    return path.read_text(encoding="utf-8").strip()
-
-
-def load_system_prompts() -> dict[str, str]:
-    prompts: dict[str, str] = {}
-    for key, filename in PROMPT_FILES.items():
-        override = _read_prompt(PROMPT_OVERRIDE_DIR / filename)
-        default = _read_prompt(DEFAULT_PROMPTS_DIR / filename)
-        prompts[key] = override or default
-    return prompts
 
 
 async def fetch_ollama_models(

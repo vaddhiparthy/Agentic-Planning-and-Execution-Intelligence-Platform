@@ -50,16 +50,6 @@ class RunRecord(BaseModel):
     effective_model: str | None = None
 
 
-class ScopeReadiness(BaseModel):
-    scope: Scope
-    active_goal_count: int = 0
-    feedback_count: int = 0
-    run_count_today: int = 0
-    current_run_id: str | None = None
-    can_run: bool = False
-    reasons: list[str] = Field(default_factory=list)
-
-
 class SchedulerSnapshot(BaseModel):
     running: bool
     autopilot: bool
